@@ -93,9 +93,33 @@ object DefaultMediaData {
             imdbRating = "9.5",
             genres = listOf("Crime", "Drama", "Thriller"),
             videos = listOf(
-                VideoEpisode(id = "tt0903747:1:1", title = "Pilot", season = 1, episode = 1, released = "2008-01-20"),
-                VideoEpisode(id = "tt0903747:1:2", title = "Cat's in the Bag...", season = 1, episode = 2, released = "2008-01-27"),
-                VideoEpisode(id = "tt0903747:1:3", title = "...And the Bag's in the River", season = 1, episode = 3, released = "2008-02-10")
+                VideoEpisode(
+                    id = "tt0903747:1:1",
+                    title = "Pilot",
+                    season = 1,
+                    episode = 1,
+                    released = "2008-01-20",
+                    thumbnail = "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=400&auto=format&fit=crop&q=80",
+                    imdbRating = "9.0"
+                ),
+                VideoEpisode(
+                    id = "tt0903747:1:2",
+                    title = "Cat's in the Bag...",
+                    season = 1,
+                    episode = 2,
+                    released = "2008-01-27",
+                    thumbnail = "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=400&auto=format&fit=crop&q=80",
+                    imdbRating = "8.6"
+                ),
+                VideoEpisode(
+                    id = "tt0903747:1:3",
+                    title = "...And the Bag's in the River",
+                    season = 1,
+                    episode = 3,
+                    released = "2008-02-10",
+                    thumbnail = "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=400&auto=format&fit=crop&q=80",
+                    imdbRating = "8.7"
+                )
             )
         ),
         MetaItem(
@@ -109,8 +133,24 @@ object DefaultMediaData {
             imdbRating = "9.2",
             genres = listOf("Action", "Adventure", "Drama"),
             videos = listOf(
-                VideoEpisode(id = "tt0944947:1:1", title = "Winter Is Coming", season = 1, episode = 1, released = "2011-04-17"),
-                VideoEpisode(id = "tt0944947:1:2", title = "The Kingsroad", season = 1, episode = 2, released = "2011-04-24")
+                VideoEpisode(
+                    id = "tt0944947:1:1",
+                    title = "Winter Is Coming",
+                    season = 1,
+                    episode = 1,
+                    released = "2011-04-17",
+                    thumbnail = "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&auto=format&fit=crop&q=80",
+                    imdbRating = "9.0"
+                ),
+                VideoEpisode(
+                    id = "tt0944947:1:2",
+                    title = "The Kingsroad",
+                    season = 1,
+                    episode = 2,
+                    released = "2011-04-24",
+                    thumbnail = "https://images.unsplash.com/photo-1514539079130-25950c84af65?w=400&auto=format&fit=crop&q=80",
+                    imdbRating = "8.7"
+                )
             )
         ),
         MetaItem(
@@ -124,8 +164,24 @@ object DefaultMediaData {
             imdbRating = "8.7",
             genres = listOf("Drama", "Fantasy", "Horror"),
             videos = listOf(
-                VideoEpisode(id = "tt4574334:1:1", title = "Chapter One: The Vanishing of Will Byers", season = 1, episode = 1, released = "2016-07-15"),
-                VideoEpisode(id = "tt4574334:1:2", title = "Chapter Two: The Weirdo on Maple Street", season = 1, episode = 2, released = "2016-07-15")
+                VideoEpisode(
+                    id = "tt4574334:1:1",
+                    title = "Chapter One: The Vanishing of Will Byers",
+                    season = 1,
+                    episode = 1,
+                    released = "2016-07-15",
+                    thumbnail = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&auto=format&fit=crop&q=80",
+                    imdbRating = "8.5"
+                ),
+                VideoEpisode(
+                    id = "tt4574334:1:2",
+                    title = "Chapter Two: The Weirdo on Maple Street",
+                    season = 1,
+                    episode = 1,
+                    released = "2016-07-15",
+                    thumbnail = "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=400&auto=format&fit=crop&q=80",
+                    imdbRating = "8.8"
+                )
             )
         )
     )

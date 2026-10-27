@@ -27,341 +27,727 @@ import com.example.ui.theme.NovaPrimary
 import com.example.ui.viewmodel.StreamNovaViewModel
 
 @Composable
-fun SettingsScreen(viewModel: StreamNovaViewModel) {
+fun SettingsScreen(
+    viewModel: StreamNovaViewModel,
+    onLogoutClick: () -> Unit = {}
+) {
     val currentSettings by viewModel.settings.collectAsStateWithLifecycle()
-    var debridKey by remember(currentSettings) { mutableStateOf(currentSettings.debridApiKey) }
-    var selectedProvider by remember(currentSettings) { mutableStateOf(currentSettings.debridProvider) }
-    var cacheSize by remember(currentSettings) { mutableIntStateOf(currentSettings.maxCacheSizeMb) }
-    var hwAcceleration by remember(currentSettings) { mutableStateOf(currentSettings.hardwareAcceleration) }
-    var autoPlayNext by remember(currentSettings) { mutableStateOf(currentSettings.autoPlayNext) }
-    var preferredQuality by remember(currentSettings) { mutableStateOf(currentSettings.preferredQuality) }
-    var subtitleSize by remember(currentSettings) { mutableIntStateOf(currentSettings.subtitleSize) }
-    var showApiKey by remember { mutableStateOf(false) }
+    val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
+
+    var selectedCategory by remember { mutableStateOf("General") }
+    val categories = listOf(
+        "General", "Account", "Library", "Addons",
+        "Playback", "Audio", "Subtitles", "Streaming", "Storage", "Accessibility"
+    )
+
+    // Local mutable copies of settings for live control
+    var settingsState by remember(currentSettings) { mutableStateOf(currentSettings) }
     var saveFeedback by remember { mutableStateOf(false) }
+    var showApiKey by remember { mutableStateOf(false) }
+
+    fun updateSettings(modify: (SettingsEntity) -> SettingsEntity) {
+        val updated = modify(settingsState)
+        settingsState = updated
+        viewModel.saveSettings(updated)
+        saveFeedback = true
+    }
 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .testTag("settings_screen"),
-        verticalArrangement = Arrangement.spacedBy(18.dp),
-        contentPadding = PaddingValues(bottom = 32.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(bottom = 36.dp)
     ) {
         item {
-            Text(
-                text = "Preferences & Settings",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color.White
-            )
-        }
-
-        // Debrid Provider & API Key
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF131627)),
-                shape = RoundedCornerShape(14.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF262A44))
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(
-                            imageVector = Icons.Default.CloudQueue,
-                            contentDescription = null,
-                            tint = NovaAccentCyan,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Text(
-                            text = "Debrid Streaming Service",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    }
-
-                    Text(
-                        text = "Connect your Real-Debrid or AllDebrid account for lightning-fast, high-speed 4K/1080p cached streams.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF8B92B2)
-                    )
-
-                    // Provider Options
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        listOf("Real-Debrid", "AllDebrid", "Premiumize").forEach { provider ->
-                            FilterChip(
-                                selected = selectedProvider == provider,
-                                onClick = { selectedProvider = provider },
-                                label = { Text(provider, fontSize = 12.sp) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = NovaPrimary,
-                                    selectedLabelColor = Color.White
-                                )
-                            )
-                        }
-                    }
-
-                    OutlinedTextField(
-                        value = debridKey,
-                        onValueChange = { debridKey = it },
-                        label = { Text("$selectedProvider API Token") },
-                        placeholder = { Text("Paste your API token here", color = Color(0xFF6B7294)) },
-                        visualTransformation = if (showApiKey) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            IconButton(onClick = { showApiKey = !showApiKey }) {
-                                Icon(
-                                    imageVector = if (showApiKey) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                    contentDescription = "Toggle Visibility",
-                                    tint = Color(0xFFA0A5C2)
-                                )
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("debrid_api_key_input"),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = NovaPrimary,
-                            unfocusedBorderColor = Color(0xFF2C3252),
-                            focusedContainerColor = Color(0xFF171A30),
-                            unfocusedContainerColor = Color(0xFF171A30),
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
-                        ),
-                        singleLine = true
-                    )
-                }
-            }
-        }
-
-        // Playback & Video Engine
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF131627)),
-                shape = RoundedCornerShape(14.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF262A44))
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(
-                            imageVector = Icons.Default.PlayCircle,
-                            contentDescription = null,
-                            tint = NovaPrimary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Text(
-                            text = "Playback & Video Engine",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    }
-
-                    // Hardware Acceleration
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Hardware Acceleration",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color.White
-                            )
-                            Text(
-                                text = "Hardware video decoding for 4K 60FPS playback with low battery consumption.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFF888FA8)
-                            )
-                        }
-                        Switch(
-                            checked = hwAcceleration,
-                            onCheckedChange = { hwAcceleration = it },
-                            colors = SwitchDefaults.colors(checkedTrackColor = NovaPrimary),
-                            modifier = Modifier.testTag("hw_accel_switch")
-                        )
-                    }
-
-                    Divider(color = Color(0xFF22263C))
-
-                    // Auto Play Next
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Auto-play Next Episode",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color.White
-                            )
-                            Text(
-                                text = "Automatically play the following episode in series queues.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFF888FA8)
-                            )
-                        }
-                        Switch(
-                            checked = autoPlayNext,
-                            onCheckedChange = { autoPlayNext = it },
-                            colors = SwitchDefaults.colors(checkedTrackColor = NovaPrimary),
-                            modifier = Modifier.testTag("auto_play_next_switch")
-                        )
-                    }
-
-                    Divider(color = Color(0xFF22263C))
-
-                    // Preferred Quality
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(
-                            text = "Preferred Streaming Quality",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color.White
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf("4K Remux", "1080p FHD", "720p HD").forEach { q ->
-                                FilterChip(
-                                    selected = preferredQuality == q,
-                                    onClick = { preferredQuality = q },
-                                    label = { Text(q, fontSize = 11.sp) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = NovaPrimary,
-                                        selectedLabelColor = Color.White
-                                    )
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Cache & Storage
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF131627)),
-                shape = RoundedCornerShape(14.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF262A44))
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(
-                            imageVector = Icons.Default.Storage,
-                            contentDescription = null,
-                            tint = Color(0xFFFFB74D),
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Text(
-                            text = "Streaming Cache Limit",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    }
-
-                    Text(
-                        text = "ExoPlayer buffer size: ${cacheSize} MB. Larger caches reduce buffering on slow connections.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF888FA8)
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        listOf(512, 1024, 2048, 4096).forEach { size ->
-                            FilterChip(
-                                selected = cacheSize == size,
-                                onClick = { cacheSize = size },
-                                label = { Text("${size}MB", fontSize = 11.sp) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = NovaPrimary,
-                                    selectedLabelColor = Color.White
-                                )
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // Save Button
-        item {
-            Button(
-                onClick = {
-                    viewModel.saveSettings(
-                        currentSettings.copy(
-                            debridApiKey = debridKey,
-                            debridProvider = selectedProvider,
-                            maxCacheSizeMb = cacheSize,
-                            hardwareAcceleration = hwAcceleration,
-                            autoPlayNext = autoPlayNext,
-                            preferredQuality = preferredQuality,
-                            subtitleSize = subtitleSize
-                        )
-                    )
-                    saveFeedback = true
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-                    .testTag("save_settings_button"),
-                colors = ButtonDefaults.buttonColors(containerColor = NovaPrimary),
-                shape = RoundedCornerShape(10.dp)
-            ) {
-                Icon(imageVector = Icons.Default.Save, contentDescription = null)
-                Spacer(modifier = Modifier.width(6.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = if (saveFeedback) "Preferences Saved!" else "Save Preferences",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp
+                    text = "Settings Center",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White
+                )
+                Text(
+                    text = "Configure playback, streaming server, subtitles, and TV optimization.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF888FA8)
                 )
             }
         }
 
-        // App Information
+        // Category Tabs
         item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F111E)),
-                shape = RoundedCornerShape(12.dp)
+            ScrollableTabRow(
+                selectedTabIndex = categories.indexOf(selectedCategory).coerceAtLeast(0),
+                containerColor = Color(0xFF131526),
+                contentColor = Color.White,
+                edgePadding = 0.dp,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .border(1.dp, Color(0xFF252940), RoundedCornerShape(12.dp))
             ) {
-                Column(
-                    modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = "StreamNova Mobile v1.0.0",
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        fontSize = 12.sp
-                    )
-                    Text(
-                        text = "Compatible with official Stremio Addon Protocol v3 specifications. Powered by ExoPlayer Media3.",
-                        color = Color(0xFF6B7293),
-                        fontSize = 11.sp
+                categories.forEach { cat ->
+                    val isSelected = selectedCategory == cat
+                    Tab(
+                        selected = isSelected,
+                        onClick = { selectedCategory = cat },
+                        text = {
+                            Text(
+                                text = cat,
+                                fontSize = 12.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) NovaPrimary else Color(0xFF9EA4C4)
+                            )
+                        }
                     )
                 }
             }
         }
+
+        // Selected Category Content
+        when (selectedCategory) {
+            "General" -> {
+                item {
+                    SettingsSectionCard(title = "General & Startup", icon = Icons.Default.Settings) {
+                        // App Language
+                        Text("App Language: ${settingsState.appLanguage}", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("English", "Spanish", "French", "German").forEach { lang ->
+                                FilterChip(
+                                    selected = settingsState.appLanguage == lang,
+                                    onClick = { updateSettings { it.copy(appLanguage = lang) } },
+                                    label = { Text(lang, fontSize = 11.sp) }
+                                )
+                            }
+                        }
+
+                        Divider(color = Color(0xFF22263C))
+
+                        // Startup Screen
+                        Text("Startup Screen: ${settingsState.startupScreen}", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("Discover / Home", "Search", "My Library").forEach { screen ->
+                                FilterChip(
+                                    selected = settingsState.startupScreen == screen,
+                                    onClick = { updateSettings { it.copy(startupScreen = screen) } },
+                                    label = { Text(screen, fontSize = 11.sp) }
+                                )
+                            }
+                        }
+
+                        Divider(color = Color(0xFF22263C))
+
+                        SettingsSwitchRow(
+                            title = "Launch on System Boot (Android TV)",
+                            subtitle = "Automatically open StreamNova when TV device turns on",
+                            checked = settingsState.launchOnSystemBoot,
+                            onCheckedChange = { chk -> updateSettings { it.copy(launchOnSystemBoot = chk) } }
+                        )
+
+                        Divider(color = Color(0xFF22263C))
+
+                        SettingsSwitchRow(
+                            title = "Background Torrent Seeding",
+                            subtitle = "Keep sharing completed blocks when in background",
+                            checked = settingsState.backgroundSeeding,
+                            onCheckedChange = { chk -> updateSettings { it.copy(backgroundSeeding = chk) } }
+                        )
+
+                        Divider(color = Color(0xFF22263C))
+
+                        SettingsSwitchRow(
+                            title = "Anonymous App Analytics",
+                            subtitle = "Help improve catalog scraping and player compatibility",
+                            checked = settingsState.analyticsEnabled,
+                            onCheckedChange = { chk -> updateSettings { it.copy(analyticsEnabled = chk) } }
+                        )
+                    }
+                }
+            }
+
+            "Account" -> {
+                item {
+                    SettingsSectionCard(title = "Account & Profiles", icon = Icons.Default.Person) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column {
+                                Text(
+                                    text = currentUser?.displayName ?: "StreamNova Member",
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    fontSize = 16.sp
+                                )
+                                Text(
+                                    text = currentUser?.email ?: "user@streamnova.tv",
+                                    color = Color(0xFF888FA8),
+                                    fontSize = 12.sp
+                                )
+                            }
+
+                            Button(
+                                onClick = {
+                                    viewModel.logout()
+                                    onLogoutClick()
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text("Sign Out", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                        }
+
+                        Divider(color = Color(0xFF22263C))
+
+                        Text("Active Profile: ${settingsState.activeProfile}", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("Default User", "Kids", "Family", "Cinema Room").forEach { prof ->
+                                FilterChip(
+                                    selected = settingsState.activeProfile == prof,
+                                    onClick = { updateSettings { it.copy(activeProfile = prof) } },
+                                    label = { Text(prof, fontSize = 11.sp) }
+                                )
+                            }
+                        }
+
+                        Divider(color = Color(0xFF22263C))
+
+                        // Debrid Configuration
+                        Text("Debrid Fast-Streaming Provider", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("Real-Debrid", "AllDebrid", "Premiumize").forEach { prov ->
+                                FilterChip(
+                                    selected = settingsState.debridProvider == prov,
+                                    onClick = { updateSettings { it.copy(debridProvider = prov) } },
+                                    label = { Text(prov, fontSize = 11.sp) }
+                                )
+                            }
+                        }
+
+                        OutlinedTextField(
+                            value = settingsState.debridApiKey,
+                            onValueChange = { key -> updateSettings { it.copy(debridApiKey = key) } },
+                            label = { Text("${settingsState.debridProvider} API Key") },
+                            placeholder = { Text("Paste API key", color = Color(0xFF6B7294)) },
+                            visualTransformation = if (showApiKey) VisualTransformation.None else PasswordVisualTransformation(),
+                            trailingIcon = {
+                                IconButton(onClick = { showApiKey = !showApiKey }) {
+                                    Icon(
+                                        imageVector = if (showApiKey) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                        contentDescription = null,
+                                        tint = Color(0xFFA0A5C2)
+                                    )
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                    }
+                }
+            }
+
+            "Library" -> {
+                item {
+                    SettingsSectionCard(title = "Library & Cloud Sync", icon = Icons.Default.Bookmark) {
+                        SettingsSwitchRow(
+                            title = "Auto-remove finished items",
+                            subtitle = "Automatically clean up items watched past 95%",
+                            checked = settingsState.autoRemoveFinished,
+                            onCheckedChange = { chk -> updateSettings { it.copy(autoRemoveFinished = chk) } }
+                        )
+
+                        Divider(color = Color(0xFF22263C))
+
+                        Text("Cloud Sync Frequency: ${settingsState.cloudSyncInterval}", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("Hourly", "Daily", "Weekly", "Manual").forEach { interval ->
+                                FilterChip(
+                                    selected = settingsState.cloudSyncInterval == interval,
+                                    onClick = { updateSettings { it.copy(cloudSyncInterval = interval) } },
+                                    label = { Text(interval, fontSize = 11.sp) }
+                                )
+                            }
+                        }
+
+                        Divider(color = Color(0xFF22263C))
+
+                        Text("Default Sort Order: ${settingsState.defaultSortOrder}", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("Title", "Release Date", "IMDb Rating", "Recently Added").forEach { sort ->
+                                FilterChip(
+                                    selected = settingsState.defaultSortOrder == sort,
+                                    onClick = { updateSettings { it.copy(defaultSortOrder = sort) } },
+                                    label = { Text(sort, fontSize = 11.sp) }
+                                )
+                            }
+                        }
+
+                        Divider(color = Color(0xFF22263C))
+
+                        Text("Poster View Style: ${settingsState.posterViewStyle}", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("Grid Cards", "Compact List", "Wide Banners").forEach { style ->
+                                FilterChip(
+                                    selected = settingsState.posterViewStyle == style,
+                                    onClick = { updateSettings { it.copy(posterViewStyle = style) } },
+                                    label = { Text(style, fontSize = 11.sp) }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            "Addons" -> {
+                item {
+                    SettingsSectionCard(title = "Addon Management", icon = Icons.Default.Extension) {
+                        SettingsSwitchRow(
+                            title = "Automatic Addon Updates",
+                            subtitle = "Keep installed addon manifests refreshed automatically",
+                            checked = settingsState.autoUpdateAddons,
+                            onCheckedChange = { chk -> updateSettings { it.copy(autoUpdateAddons = chk) } }
+                        )
+
+                        Divider(color = Color(0xFF22263C))
+
+                        SettingsSwitchRow(
+                            title = "Verify Addon SSL Certificates",
+                            subtitle = "Enforce HTTPS validation for external community endpoints",
+                            checked = settingsState.verifyAddonSsl,
+                            onCheckedChange = { chk -> updateSettings { it.copy(verifyAddonSsl = chk) } }
+                        )
+
+                        Divider(color = Color(0xFF22263C))
+
+                        SettingsSwitchRow(
+                            title = "Allow Community Addons",
+                            subtitle = "Enable loading unofficial Stremio community repository manifests",
+                            checked = settingsState.allowCommunityAddons,
+                            onCheckedChange = { chk -> updateSettings { it.copy(allowCommunityAddons = chk) } }
+                        )
+                    }
+                }
+            }
+
+            "Playback" -> {
+                item {
+                    SettingsSectionCard(title = "Playback & Video Decoding", icon = Icons.Default.PlayCircle) {
+                        Text("Default Decoder: ${settingsState.defaultDecoder}", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("Hardware (HW+)", "Software (SW)", "Auto").forEach { dec ->
+                                FilterChip(
+                                    selected = settingsState.defaultDecoder == dec,
+                                    onClick = { updateSettings { it.copy(defaultDecoder = dec) } },
+                                    label = { Text(dec, fontSize = 11.sp) }
+                                )
+                            }
+                        }
+
+                        Divider(color = Color(0xFF22263C))
+
+                        SettingsSwitchRow(
+                            title = "HDR Tone Mapping",
+                            subtitle = "Map HDR10/Dolby Vision content accurately onto SDR displays",
+                            checked = settingsState.hdrToneMapping,
+                            onCheckedChange = { chk -> updateSettings { it.copy(hdrToneMapping = chk) } }
+                        )
+
+                        Divider(color = Color(0xFF22263C))
+
+                        SettingsSwitchRow(
+                            title = "Autoplay Next Episode",
+                            subtitle = "Automatically queue and launch the next TV episode",
+                            checked = settingsState.autoplayNextEpisode,
+                            onCheckedChange = { chk -> updateSettings { it.copy(autoplayNextEpisode = chk) } }
+                        )
+
+                        Divider(color = Color(0xFF22263C))
+
+                        SettingsSwitchRow(
+                            title = "Night Mode Color Filter",
+                            subtitle = "Reduce blue light emission for late-night viewing",
+                            checked = settingsState.nightModeFilter,
+                            onCheckedChange = { chk -> updateSettings { it.copy(nightModeFilter = chk) } }
+                        )
+
+                        Divider(color = Color(0xFF22263C))
+
+                        Text("Double-Tap Seek: ${settingsState.doubleTapSeekSeconds} Seconds", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(5, 10, 15, 30).forEach { sec ->
+                                FilterChip(
+                                    selected = settingsState.doubleTapSeekSeconds == sec,
+                                    onClick = { updateSettings { it.copy(doubleTapSeekSeconds = sec) } },
+                                    label = { Text("${sec}s", fontSize = 11.sp) }
+                                )
+                            }
+                        }
+
+                        Divider(color = Color(0xFF22263C))
+
+                        SettingsSwitchRow(
+                            title = "Stats for Nerds (Video Diagnostic Overlay)",
+                            subtitle = "Display FPS, dropped frames, decoder, and bitrate stats",
+                            checked = settingsState.statsForNerds,
+                            onCheckedChange = { chk -> updateSettings { it.copy(statsForNerds = chk) } }
+                        )
+                    }
+                }
+            }
+
+            "Audio" -> {
+                item {
+                    SettingsSectionCard(title = "Audio & Passthrough", icon = Icons.Default.VolumeUp) {
+                        Text("Preferred Audio Language: ${settingsState.audioLanguage}", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("English", "Spanish", "French", "German", "Japanese").forEach { lang ->
+                                FilterChip(
+                                    selected = settingsState.audioLanguage == lang,
+                                    onClick = { updateSettings { it.copy(audioLanguage = lang) } },
+                                    label = { Text(lang, fontSize = 11.sp) }
+                                )
+                            }
+                        }
+
+                        Divider(color = Color(0xFF22263C))
+
+                        Text("Audio Output Mode: ${settingsState.audioOutputMode}", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("Stereo", "Dolby 5.1", "Atmos 7.1", "Auto Passthrough").forEach { mode ->
+                                FilterChip(
+                                    selected = settingsState.audioOutputMode == mode,
+                                    onClick = { updateSettings { it.copy(audioOutputMode = mode) } },
+                                    label = { Text(mode, fontSize = 11.sp) }
+                                )
+                            }
+                        }
+
+                        Divider(color = Color(0xFF22263C))
+
+                        SettingsSwitchRow(
+                            title = "Dolby Digital & DTS Passthrough",
+                            subtitle = "Bitstream multichannel audio to optical or HDMI ARC receivers",
+                            checked = settingsState.passthroughDolbyDts,
+                            onCheckedChange = { chk -> updateSettings { it.copy(passthroughDolbyDts = chk) } }
+                        )
+
+                        Divider(color = Color(0xFF22263C))
+
+                        Text("Volume Boost Level: ${settingsState.volumeBoostLevel}%", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Slider(
+                            value = settingsState.volumeBoostLevel.toFloat(),
+                            onValueChange = { lvl -> updateSettings { it.copy(volumeBoostLevel = lvl.toInt()) } },
+                            valueRange = 100f..200f
+                        )
+                    }
+                }
+            }
+
+            "Subtitles" -> {
+                item {
+                    SettingsSectionCard(title = "Subtitles & OpenSubtitles", icon = Icons.Default.Subtitles) {
+                        Text("Auto-load Subtitles: ${settingsState.autoLoadSubtitles}", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("For Foreign Audio Only", "Always On", "Off").forEach { mode ->
+                                FilterChip(
+                                    selected = settingsState.autoLoadSubtitles == mode,
+                                    onClick = { updateSettings { it.copy(autoLoadSubtitles = mode) } },
+                                    label = { Text(mode, fontSize = 11.sp) }
+                                )
+                            }
+                        }
+
+                        Divider(color = Color(0xFF22263C))
+
+                        Text("Primary Subtitle Language: ${settingsState.primarySubtitleLang}", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("English", "Spanish", "French", "German", "Portuguese").forEach { lang ->
+                                FilterChip(
+                                    selected = settingsState.primarySubtitleLang == lang,
+                                    onClick = { updateSettings { it.copy(primarySubtitleLang = lang) } },
+                                    label = { Text(lang, fontSize = 11.sp) }
+                                )
+                            }
+                        }
+
+                        Divider(color = Color(0xFF22263C))
+
+                        Text("Subtitle Font Size: ${settingsState.subtitleSize} sp", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Slider(
+                            value = settingsState.subtitleSize.toFloat(),
+                            onValueChange = { sz -> updateSettings { it.copy(subtitleSize = sz.toInt()) } },
+                            valueRange = 12f..36f
+                        )
+
+                        Divider(color = Color(0xFF22263C))
+
+                        Text("Subtitle Text Color: ${settingsState.subtitleTextColor}", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("White", "Yellow", "Cyan", "Green").forEach { col ->
+                                FilterChip(
+                                    selected = settingsState.subtitleTextColor == col,
+                                    onClick = { updateSettings { it.copy(subtitleTextColor = col) } },
+                                    label = { Text(col, fontSize = 11.sp) }
+                                )
+                            }
+                        }
+
+                        Divider(color = Color(0xFF22263C))
+
+                        Text("Subtitle Background: ${settingsState.subtitleBgColor} (${settingsState.subtitleBgOpacity}% Opacity)", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("Black", "Semi-Transparent", "None").forEach { bg ->
+                                FilterChip(
+                                    selected = settingsState.subtitleBgColor == bg,
+                                    onClick = { updateSettings { it.copy(subtitleBgColor = bg) } },
+                                    label = { Text(bg, fontSize = 11.sp) }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            "Streaming" -> {
+                item {
+                    SettingsSectionCard(title = "Streaming Server & Torrent P2P", icon = Icons.Default.CloudQueue) {
+                        Text("Streaming Server Port: ${settingsState.streamingServerPort}", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Text("Pre-buffer Cache Size: ${settingsState.prebufferSizeMb} MB", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(25, 50, 100, 200).forEach { mb ->
+                                FilterChip(
+                                    selected = settingsState.prebufferSizeMb == mb,
+                                    onClick = { updateSettings { it.copy(prebufferSizeMb = mb) } },
+                                    label = { Text("${mb}MB", fontSize = 11.sp) }
+                                )
+                            }
+                        }
+
+                        Divider(color = Color(0xFF22263C))
+
+                        Text("Torrent Profile: ${settingsState.torrentProfile}", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("Default / Fast", "Ultra Seeder", "Low Memory").forEach { prof ->
+                                FilterChip(
+                                    selected = settingsState.torrentProfile == prof,
+                                    onClick = { updateSettings { it.copy(torrentProfile = prof) } },
+                                    label = { Text(prof, fontSize = 11.sp) }
+                                )
+                            }
+                        }
+
+                        Divider(color = Color(0xFF22263C))
+
+                        Text("Torrent Connection Timeout: ${settingsState.torrentTimeoutSec} sec", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Slider(
+                            value = settingsState.torrentTimeoutSec.toFloat(),
+                            onValueChange = { t -> updateSettings { it.copy(torrentTimeoutSec = t.toInt()) } },
+                            valueRange = 10f..60f
+                        )
+
+                        Divider(color = Color(0xFF22263C))
+
+                        SettingsSwitchRow(
+                            title = "UPnP / Port Forwarding",
+                            subtitle = "Automatic router port mapping for direct stream peering",
+                            checked = settingsState.upnpPortForwarding,
+                            onCheckedChange = { chk -> updateSettings { it.copy(upnpPortForwarding = chk) } }
+                        )
+
+                        Divider(color = Color(0xFF22263C))
+
+                        SettingsSwitchRow(
+                            title = "Distributed Hash Table (DHT)",
+                            subtitle = "Trackerless peer discovery for public magnet links",
+                            checked = settingsState.dhtEnabled,
+                            onCheckedChange = { chk -> updateSettings { it.copy(dhtEnabled = chk) } }
+                        )
+                    }
+                }
+            }
+
+            "Storage" -> {
+                item {
+                    SettingsSectionCard(title = "Storage & Cache Management", icon = Icons.Default.Storage) {
+                        Text("Cache Location: ${settingsState.cacheStorageLocation}", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("Internal Storage", "External SD Card").forEach { loc ->
+                                FilterChip(
+                                    selected = settingsState.cacheStorageLocation == loc,
+                                    onClick = { updateSettings { it.copy(cacheStorageLocation = loc) } },
+                                    label = { Text(loc, fontSize = 11.sp) }
+                                )
+                            }
+                        }
+
+                        Divider(color = Color(0xFF22263C))
+
+                        Text("Streaming Cache Size: ${settingsState.streamingCacheSizeMb} MB", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(512, 1024, 2048, 4096).forEach { sz ->
+                                FilterChip(
+                                    selected = settingsState.streamingCacheSizeMb == sz,
+                                    onClick = { updateSettings { it.copy(streamingCacheSizeMb = sz) } },
+                                    label = { Text("${sz}MB", fontSize = 11.sp) }
+                                )
+                            }
+                        }
+
+                        Divider(color = Color(0xFF22263C))
+
+                        Button(
+                            onClick = {
+                                updateSettings { it.copy(streamingCacheSizeMb = 1024) }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(imageVector = Icons.Default.Delete, contentDescription = null)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Clear All Streaming Caches & Temp Files", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+
+            "Accessibility" -> {
+                item {
+                    SettingsSectionCard(title = "Accessibility & Android TV", icon = Icons.Default.Accessibility) {
+                        SettingsSwitchRow(
+                            title = "High Contrast Text",
+                            subtitle = "Enhance font borders and stroke outlines for readability",
+                            checked = settingsState.highContrastText,
+                            onCheckedChange = { chk -> updateSettings { it.copy(highContrastText = chk) } }
+                        )
+
+                        Divider(color = Color(0xFF22263C))
+
+                        Text("TV Focus Scale Multiplier: ${String.format("%.2f", settingsState.tvFocusScaleMultiplier)}x", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(1.05f, 1.10f, 1.15f, 1.25f).forEach { sc ->
+                                FilterChip(
+                                    selected = settingsState.tvFocusScaleMultiplier == sc,
+                                    onClick = { updateSettings { it.copy(tvFocusScaleMultiplier = sc) } },
+                                    label = { Text("${sc}x", fontSize = 11.sp) }
+                                )
+                            }
+                        }
+
+                        Divider(color = Color(0xFF22263C))
+
+                        SettingsSwitchRow(
+                            title = "TalkBack Enhancements",
+                            subtitle = "Provide detailed audio spoken descriptions for movie posters",
+                            checked = settingsState.talkBackEnhancements,
+                            onCheckedChange = { chk -> updateSettings { it.copy(talkBackEnhancements = chk) } }
+                        )
+                    }
+                }
+            }
+        }
+
+        // Save confirmation toast
+        item {
+            if (saveFeedback) {
+                Surface(
+                    color = Color(0xFF1B382B),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.Check, contentDescription = null, tint = Color(0xFF00E676))
+                        Text(
+                            text = "Settings successfully synchronized and saved to database.",
+                            color = Color(0xFF00E676),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SettingsSectionCard(
+    title: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF131526)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF252940))
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = NovaPrimary,
+                    modifier = Modifier.size(22.dp)
+                )
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
+            content()
+        }
+    }
+}
+
+@Composable
+fun SettingsSwitchRow(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF888FA8)
+            )
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = NovaPrimary,
+                uncheckedTrackColor = Color(0xFF282C44)
+            )
+        )
     }
 }

@@ -59,6 +59,7 @@ data class VideoEpisode(
     @SerializedName("episode") val episode: Int? = 1,
     @SerializedName("released") val released: String? = null,
     @SerializedName("thumbnail") val thumbnail: String? = null,
+    @SerializedName("imdbRating") val imdbRating: String? = null,
     @SerializedName("overview") val overview: String? = null
 )
 

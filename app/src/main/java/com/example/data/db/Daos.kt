@@ -32,7 +32,7 @@ interface LibraryDao {
     @Query("SELECT * FROM library WHERE isFavorite = 1 ORDER BY updatedAt DESC")
     fun getFavorites(): Flow<List<LibraryEntity>>
 
-    @Query("SELECT * FROM library WHERE progress > 0.05 AND progress < 0.95 ORDER BY updatedAt DESC LIMIT 10")
+    @Query("SELECT * FROM library WHERE (positionMs > 0 AND positionMs < durationMs) OR (progress > 0.03 AND progress < 0.95) ORDER BY lastWatchedTimestamp DESC")
     fun getContinueWatching(): Flow<List<LibraryEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -50,8 +50,23 @@ interface LibraryDao {
     @Query("UPDATE library SET isFavorite = :isFavorite, updatedAt = :updatedAt WHERE id = :id")
     suspend fun updateFavorite(id: String, isFavorite: Boolean, updatedAt: Long = System.currentTimeMillis())
 
-    @Query("UPDATE library SET progress = :progress, positionMs = :positionMs, durationMs = :durationMs, updatedAt = :updatedAt WHERE id = :id")
-    suspend fun updateProgress(id: String, progress: Float, positionMs: Long, durationMs: Long, updatedAt: Long = System.currentTimeMillis())
+    @Query("UPDATE library SET progress = :progress, positionMs = :positionMs, durationMs = :durationMs, lastWatchedTimestamp = :timestamp, updatedAt = :timestamp WHERE id = :id")
+    suspend fun updateProgress(id: String, progress: Float, positionMs: Long, durationMs: Long, timestamp: Long = System.currentTimeMillis())
+}
+
+@Dao
+interface UserDao {
+    @Query("SELECT * FROM user_account WHERE isLoggedIn = 1 LIMIT 1")
+    suspend fun getCurrentUser(): UserEntity?
+
+    @Query("SELECT * FROM user_account WHERE isLoggedIn = 1 LIMIT 1")
+    fun observeCurrentUser(): Flow<UserEntity?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun saveUser(user: UserEntity)
+
+    @Query("DELETE FROM user_account")
+    suspend fun logout()
 }
 
 @Dao

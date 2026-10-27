@@ -277,7 +277,7 @@ fun DetailsScreen(
                     }
                 }
 
-                // Episodes list if TV Series
+                // Episodes list if TV Series with EpisodeItem
                 if (!item.videos.isNullOrEmpty()) {
                     item {
                         Column(
@@ -286,38 +286,26 @@ fun DetailsScreen(
                         ) {
                             Text(
                                 text = "Episodes (${item.videos.size})",
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
                             )
+                        }
+                    }
 
-                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                items(item.videos) { ep ->
-                                    val isSelected = selectedEpisode?.id == ep.id
-                                    Surface(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .clickable { selectedEpisode = ep },
-                                        color = if (isSelected) NovaPrimary else Color(0xFF191C2E),
-                                        shape = RoundedCornerShape(8.dp)
-                                    ) {
-                                        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-                                            Text(
-                                                text = "S${ep.season ?: 1} E${ep.episode ?: 1}",
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color.White,
-                                                fontSize = 12.sp
-                                            )
-                                            Text(
-                                                text = ep.title.ifEmpty { "Episode ${ep.episode}" },
-                                                color = if (isSelected) Color(0xFFE0E7FF) else Color(0xFFA1A7C5),
-                                                fontSize = 11.sp,
-                                                maxLines = 1
-                                            )
-                                        }
-                                    }
+                    items(item.videos) { ep ->
+                        val isSelected = selectedEpisode?.id == ep.id
+                        Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                            EpisodeItem(
+                                episode = ep,
+                                isSelected = isSelected,
+                                onClick = {
+                                    selectedEpisode = ep
+                                    val streamTitle = "${item.name} - S${ep.season ?: 1}E${ep.episode ?: 1}: ${ep.title}"
+                                    val defaultUrl = streams.firstOrNull()?.url ?: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+                                    onPlayClick(defaultUrl, streamTitle)
                                 }
-                            }
+                            )
                         }
                     }
                 }
@@ -335,7 +323,7 @@ fun DetailsScreen(
                         ) {
                             Text(
                                 text = "Available Streams (${streams.size})",
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
                             )
@@ -363,11 +351,128 @@ fun DetailsScreen(
                             itemTitle = item.name,
                             onPlayClick = {
                                 val targetUrl = stream.url ?: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
-                                onPlayClick(targetUrl, item.name)
+                                val currentTitle = if (selectedEpisode != null) {
+                                    "${item.name} S${selectedEpisode?.season ?: 1}E${selectedEpisode?.episode ?: 1}: ${selectedEpisode?.title}"
+                                } else {
+                                    item.name
+                                }
+                                onPlayClick(targetUrl, currentTitle)
                             }
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun EpisodeItem(
+    episode: VideoEpisode,
+    isSelected: Boolean = false,
+    onClick: () -> Unit = {}
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .clickable(onClick = onClick)
+            .border(
+                1.dp,
+                if (isSelected) NovaPrimary else Color(0xFF25293F),
+                RoundedCornerShape(12.dp)
+            ),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) Color(0xFF1B1F34) else Color(0xFF131525)
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (!episode.thumbnail.isNullOrEmpty()) {
+                AsyncImage(
+                    model = episode.thumbnail,
+                    contentDescription = episode.title,
+                    modifier = Modifier
+                        .width(110.dp)
+                        .height(68.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+            } else {
+                Surface(
+                    color = Color(0xFF22263D),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier
+                        .width(90.dp)
+                        .height(60.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            tint = Color.White
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "S${episode.season ?: 1} E${episode.episode ?: 1}: ${episode.title.ifEmpty { "Episode " + (episode.episode ?: 1) }}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                if (!episode.imdbRating.isNullOrEmpty()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = null,
+                            tint = NovaRatingGold,
+                            modifier = Modifier.size(11.dp)
+                        )
+                        Text(
+                            text = "IMDb ${episode.imdbRating}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFFA5ABC8),
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+
+                if (!episode.released.isNullOrEmpty()) {
+                    Text(
+                        text = episode.released,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(0xFF7E85A8),
+                        fontSize = 10.sp
+                    )
+                }
+            }
+
+            IconButton(
+                onClick = onClick,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PlayArrow,
+                    contentDescription = "Play Episode",
+                    tint = NovaPrimary
+                )
             }
         }
     }

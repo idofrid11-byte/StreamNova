@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit
 class AddonRepository(
     private val addonDao: AddonDao,
     private val libraryDao: LibraryDao,
+    private val userDao: UserDao,
     private val settingsDao: SettingsDao
 ) {
     private val okHttpClient = OkHttpClient.Builder()
@@ -34,6 +35,33 @@ class AddonRepository(
     val favorites: Flow<List<LibraryEntity>> = libraryDao.getFavorites()
     val continueWatching: Flow<List<LibraryEntity>> = libraryDao.getContinueWatching()
     val settings: Flow<SettingsEntity?> = settingsDao.getSettings()
+    val currentUser: Flow<UserEntity?> = userDao.observeCurrentUser()
+
+    suspend fun loginOrRegister(email: String, passwordHash: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            userDao.logout() // clear any stale sessions
+            userDao.saveUser(
+                UserEntity(
+                    email = email.trim(),
+                    passwordHash = passwordHash,
+                    isLoggedIn = true,
+                    displayName = email.substringBefore("@").replaceFirstChar { it.uppercase() }
+                )
+            )
+            true
+        } catch (e: Exception) {
+            Log.e("AddonRepository", "Failed to login user", e)
+            false
+        }
+    }
+
+    suspend fun logout() = withContext(Dispatchers.IO) {
+        userDao.logout()
+    }
+
+    suspend fun getCurrentUser(): UserEntity? = withContext(Dispatchers.IO) {
+        userDao.getCurrentUser()
+    }
 
     suspend fun installAddon(manifestUrl: String): Boolean = withContext(Dispatchers.IO) {
         try {
@@ -109,7 +137,6 @@ class AddonRepository(
         } catch (e: Exception) {
             Log.w("AddonRepository", "getMeta failed for $id: ${e.message}")
         }
-        // Fallback meta
         val fallback = (DefaultMediaData.sampleMovies + DefaultMediaData.sampleSeries).find { it.id == id }
         fallback ?: MetaItem(
             id = id,
@@ -143,7 +170,6 @@ class AddonRepository(
             Log.w("AddonRepository", "Streams lookup returned error: ${e.message}")
         }
 
-        // Always augment with verified direct playable demo/open streams so user can immediately play
         val verifiedStreams = DefaultMediaData.getWorkingStreamsFor(id, itemName)
         resultStreams.addAll(verifiedStreams)
         resultStreams
@@ -172,7 +198,6 @@ class AddonRepository(
         }
     }
 
-    // Library Operations
     suspend fun toggleFavorite(meta: MetaItem) = withContext(Dispatchers.IO) {
         val existing = libraryDao.getLibraryItem(meta.id)
         if (existing == null) {

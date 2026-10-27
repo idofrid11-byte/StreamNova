@@ -10,13 +10,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @Database(
-    entities = [AddonEntity::class, LibraryEntity::class, SettingsEntity::class],
-    version = 1,
+    entities = [AddonEntity::class, LibraryEntity::class, UserEntity::class, SettingsEntity::class],
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun addonDao(): AddonDao
     abstract fun libraryDao(): LibraryDao
+    abstract fun userDao(): UserDao
     abstract fun settingsDao(): SettingsDao
 
     companion object {
@@ -30,10 +31,10 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "streamnova_database"
                 )
+                .fallbackToDestructiveMigration()
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
-                        // Pre-populate with default addons and settings
                         CoroutineScope(Dispatchers.IO).launch {
                             val database = getDatabase(context)
                             database.settingsDao().saveSettings(SettingsEntity())

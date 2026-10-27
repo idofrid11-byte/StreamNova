@@ -3,6 +3,7 @@ package com.example.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -11,6 +12,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -24,8 +26,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.tv.material3.ClassicCard
+import androidx.tv.material3.CardDefaults as TvCardDefaults
+import androidx.tv.material3.ExperimentalTvMaterial3Api
 import coil.compose.AsyncImage
 import com.example.data.model.MetaItem
+import com.example.ui.theme.NovaPrimary
 import com.example.ui.theme.NovaRatingGold
 import com.example.ui.theme.NovaSurfaceElevated
 
@@ -35,7 +41,7 @@ fun CatalogCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     width: Int = 135,
-    height: Int = 205
+    height: Int = 210
 ) {
     Card(
         modifier = modifier
@@ -63,7 +69,7 @@ fun CatalogCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(90.dp)
+                    .height(95.dp)
                     .align(Alignment.BottomCenter)
                     .background(
                         Brush.verticalGradient(
@@ -144,4 +150,81 @@ fun CatalogCard(
             }
         }
     }
+}
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+fun TvCatalogCard(
+    meta: MetaItem,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    ClassicCard(
+        onClick = onClick,
+        modifier = modifier
+            .width(140.dp)
+            .height(220.dp)
+            .testTag("tv_catalog_card_${meta.id}"),
+        scale = TvCardDefaults.scale(focusedScale = 1.08f),
+        image = {
+            Box(modifier = Modifier.fillMaxWidth().height(160.dp)) {
+                AsyncImage(
+                    model = meta.poster ?: meta.background,
+                    contentDescription = meta.name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+                if (!meta.imdbRating.isNullOrEmpty()) {
+                    Surface(
+                        color = Color(0xDD000000),
+                        shape = RoundedCornerShape(4.dp),
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(4.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Star,
+                                contentDescription = null,
+                                tint = NovaRatingGold,
+                                modifier = Modifier.size(10.dp)
+                            )
+                            Text(
+                                text = meta.imdbRating,
+                                color = Color.White,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        title = {
+            Text(
+                text = meta.name,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 4.dp, start = 4.dp, end = 4.dp)
+            )
+        },
+        subtitle = {
+            if (!meta.releaseInfo.isNullOrBlank()) {
+                Text(
+                    text = meta.releaseInfo,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFFA5ABC8),
+                    fontSize = 10.sp,
+                    modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+                )
+            }
+        }
+    )
 }

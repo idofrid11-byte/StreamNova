@@ -1,8 +1,6 @@
 package com.example.ui.screens
 
 import android.net.Uri
-import android.view.ViewGroup
-import android.widget.FrameLayout
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
@@ -10,10 +8,10 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -21,20 +19,21 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.AspectRatioFrameLayout
-import androidx.media3.ui.PlayerView
+import androidx.media3.ui.compose.PlayerSurface
 import com.example.ui.theme.NovaPrimary
 import com.example.ui.viewmodel.StreamNovaViewModel
 import kotlinx.coroutines.delay
@@ -54,7 +53,7 @@ fun PlayerScreen(
     var currentPosition by remember { mutableLongStateOf(0L) }
     var duration by remember { mutableLongStateOf(0L) }
     var showControls by remember { mutableStateOf(true) }
-    var resizeMode by remember { mutableIntStateOf(AspectRatioFrameLayout.RESIZE_MODE_FIT) }
+    val focusRequester = remember { FocusRequester() }
 
     BackHandler {
         onBackClick()
@@ -70,6 +69,14 @@ fun PlayerScreen(
             setMediaItem(MediaItem.fromUri(Uri.parse(safeUrl)))
             prepare()
             playWhenReady = true
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        try {
+            focusRequester.requestFocus()
+        } catch (e: Exception) {
+            // Ignore if not attached
         }
     }
 
@@ -97,7 +104,7 @@ fun PlayerScreen(
         }
     }
 
-    // Ticker for current position & auto-hide controls
+    // Ticker for current position
     LaunchedEffect(exoPlayer) {
         while (true) {
             currentPosition = exoPlayer.currentPosition.coerceAtLeast(0L)
@@ -118,6 +125,36 @@ fun PlayerScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
+            .focusRequester(focusRequester)
+            .focusable()
+            .onPreviewKeyEvent { event ->
+                if (event.type == KeyEventType.KeyDown) {
+                    when (event.key) {
+                        Key.DirectionCenter, Key.Enter, Key.NumPadEnter, Key.Spacebar -> {
+                            if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
+                            showControls = true
+                            true
+                        }
+                        Key.DirectionLeft -> {
+                            val newPos = (exoPlayer.currentPosition - 10_000L).coerceAtLeast(0L)
+                            exoPlayer.seekTo(newPos)
+                            showControls = true
+                            true
+                        }
+                        Key.DirectionRight -> {
+                            val newPos = (exoPlayer.currentPosition + 10_000L).coerceAtMost(duration)
+                            exoPlayer.seekTo(newPos)
+                            showControls = true
+                            true
+                        }
+                        Key.Back, Key.Escape -> {
+                            onBackClick()
+                            true
+                        }
+                        else -> false
+                    }
+                } else false
+            }
             .clickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() }
@@ -126,25 +163,13 @@ fun PlayerScreen(
             }
             .testTag("player_screen")
     ) {
-        // ExoPlayer View
-        AndroidView(
-            factory = { ctx ->
-                PlayerView(ctx).apply {
-                    player = exoPlayer
-                    useController = false
-                    layoutParams = FrameLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
-                    )
-                }
-            },
-            update = { playerView ->
-                playerView.resizeMode = resizeMode
-            },
+        // Media3 Compose PlayerSurface
+        PlayerSurface(
+            player = exoPlayer,
             modifier = Modifier.fillMaxSize()
         )
 
-        // Custom Overlay Controls
+        // Custom Overlay Controls (Visible on hover, tap, or remote key event)
         AnimatedVisibility(
             visible = showControls,
             enter = fadeIn(),
@@ -169,7 +194,7 @@ fun PlayerScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .statusBarsPadding()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -198,29 +223,11 @@ fun PlayerScreen(
                                 maxLines = 1
                             )
                             Text(
-                                text = "ExoPlayer Stream Engine",
+                                text = "Media3 PlayerSurface • D-Pad & Remote Enabled",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color(0xFFA0A5C2)
                             )
                         }
-                    }
-
-                    // Aspect Ratio Button
-                    IconButton(
-                        onClick = {
-                            resizeMode = if (resizeMode == AspectRatioFrameLayout.RESIZE_MODE_FIT) {
-                                AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                            } else {
-                                AspectRatioFrameLayout.RESIZE_MODE_FIT
-                            }
-                        },
-                        modifier = Modifier.testTag("aspect_ratio_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AspectRatio,
-                            contentDescription = "Resize",
-                            tint = Color.White
-                        )
                     }
                 }
 
@@ -236,7 +243,7 @@ fun PlayerScreen(
                             exoPlayer.seekTo(target)
                         },
                         modifier = Modifier
-                            .size(48.dp)
+                            .size(52.dp)
                             .background(Color(0x66000000), CircleShape)
                             .testTag("rewind_10s_button")
                     ) {
@@ -244,7 +251,7 @@ fun PlayerScreen(
                             imageVector = Icons.Default.Replay10,
                             contentDescription = "Rewind 10s",
                             tint = Color.White,
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(30.dp)
                         )
                     }
 
@@ -257,7 +264,7 @@ fun PlayerScreen(
                             }
                         },
                         modifier = Modifier
-                            .size(68.dp)
+                            .size(72.dp)
                             .background(NovaPrimary, CircleShape)
                             .testTag("play_pause_button")
                     ) {
@@ -265,7 +272,7 @@ fun PlayerScreen(
                             imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                             contentDescription = if (isPlaying) "Pause" else "Play",
                             tint = Color.White,
-                            modifier = Modifier.size(38.dp)
+                            modifier = Modifier.size(42.dp)
                         )
                     }
 
@@ -275,7 +282,7 @@ fun PlayerScreen(
                             exoPlayer.seekTo(target)
                         },
                         modifier = Modifier
-                            .size(48.dp)
+                            .size(52.dp)
                             .background(Color(0x66000000), CircleShape)
                             .testTag("forward_10s_button")
                     ) {
@@ -283,7 +290,7 @@ fun PlayerScreen(
                             imageVector = Icons.Default.Forward10,
                             contentDescription = "Forward 10s",
                             tint = Color.White,
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(30.dp)
                         )
                     }
                 }
@@ -294,7 +301,7 @@ fun PlayerScreen(
                         .fillMaxWidth()
                         .align(Alignment.BottomCenter)
                         .navigationBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .padding(horizontal = 20.dp, vertical = 14.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Slider(

@@ -3,10 +3,7 @@ package com.example.ui.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.data.db.AddonEntity
-import com.example.data.db.AppDatabase
-import com.example.data.db.LibraryEntity
-import com.example.data.db.SettingsEntity
+import com.example.data.db.*
 import com.example.data.model.MetaItem
 import com.example.data.model.StreamItem
 import com.example.data.repository.AddonRepository
@@ -16,7 +13,7 @@ import kotlinx.coroutines.launch
 class StreamNovaViewModel(application: Application) : AndroidViewModel(application) {
 
     private val db = AppDatabase.getDatabase(application)
-    val repository = AddonRepository(db.addonDao(), db.libraryDao(), db.settingsDao())
+    val repository = AddonRepository(db.addonDao(), db.libraryDao(), db.userDao(), db.settingsDao())
 
     private val _movies = MutableStateFlow<List<MetaItem>>(emptyList())
     val movies: StateFlow<List<MetaItem>> = _movies.asStateFlow()
@@ -42,6 +39,9 @@ class StreamNovaViewModel(application: Application) : AndroidViewModel(applicati
     private val _isLoadingSearch = MutableStateFlow(false)
     val isLoadingSearch: StateFlow<Boolean> = _isLoadingSearch.asStateFlow()
 
+    val currentUser: StateFlow<UserEntity?> = repository.currentUser
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     val installedAddons: StateFlow<List<AddonEntity>> = repository.installedAddons
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -57,6 +57,19 @@ class StreamNovaViewModel(application: Application) : AndroidViewModel(applicati
 
     init {
         loadHomeCatalogs()
+    }
+
+    fun loginOrRegister(email: String, password: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            val success = repository.loginOrRegister(email, password)
+            onResult(success)
+        }
+    }
+
+    fun logout() {
+        viewModelScope.launch {
+            repository.logout()
+        }
     }
 
     fun loadHomeCatalogs() {

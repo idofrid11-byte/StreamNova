@@ -1,23 +1,26 @@
 package com.example.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -32,10 +35,15 @@ import com.example.data.db.LibraryEntity
 import com.example.data.model.MetaItem
 import com.example.ui.components.CatalogCard
 import com.example.ui.components.HeroBanner
+import com.example.ui.components.TvCatalogCard
 import com.example.ui.theme.NovaPrimary
-import com.example.ui.theme.NovaRatingGold
 import com.example.ui.viewmodel.StreamNovaViewModel
 
+@OptIn(
+    androidx.compose.foundation.ExperimentalFoundationApi::class,
+    androidx.compose.ui.ExperimentalComposeUiApi::class,
+    androidx.tv.material3.ExperimentalTvMaterial3Api::class
+)
 @Composable
 fun HomeScreen(
     viewModel: StreamNovaViewModel,
@@ -50,10 +58,21 @@ fun HomeScreen(
     val isLoading by viewModel.isLoadingHome.collectAsStateWithLifecycle()
 
     var selectedFilter by remember { mutableStateOf("all") } // all, movies, series, library
+    val firstItemFocus = remember { FocusRequester() }
 
     val featuredItem = remember(movies, series) {
         movies.firstOrNull { it.background != null || it.poster != null }
             ?: series.firstOrNull()
+    }
+
+    LaunchedEffect(movies) {
+        if (movies.isNotEmpty()) {
+            try {
+                firstItemFocus.requestFocus()
+            } catch (e: Exception) {
+                // Ignore if not yet attached
+            }
+        }
     }
 
     LazyColumn(
@@ -90,14 +109,14 @@ fun HomeScreen(
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "StreamNova",
+                            text = "StreamNova TV",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.ExtraBold,
                             color = Color.White
                         )
                     }
                     Text(
-                        text = "Stremio Protocol Catalog",
+                        text = "Stremio Protocol Catalog • D-Pad & Touch Ready",
                         style = MaterialTheme.typography.labelSmall,
                         color = Color(0xFF8C92B5)
                     )
@@ -182,33 +201,73 @@ fun HomeScreen(
             }
         }
 
-        // Continue Watching Row (if user has active streams)
-        if (continueWatching.isNotEmpty()) {
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(
+        // Continue Watching Section
+        item {
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = "Continue Watching",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+
+                if (continueWatching.isEmpty()) {
+                    Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .height(85.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF131526)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF232742))
                     ) {
-                        Text(
-                            text = "Continue Watching",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                        Text(
-                            text = "${continueWatching.size} items",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF8B92B2)
-                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Surface(
+                                    color = Color(0xFF1E2238),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.size(40.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Default.PlayArrow,
+                                            contentDescription = null,
+                                            tint = Color(0xFF7E85A8),
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+                                }
+                                Column {
+                                    Text(
+                                        text = "No recent watch history",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color.White
+                                    )
+                                    Text(
+                                        text = "Start playing any title to pick up right where you left off.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color(0xFF7E85A8)
+                                    )
+                                }
+                            }
+                        }
                     }
-
+                } else {
                     LazyRow(
+                        modifier = Modifier.focusRestorer(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(horizontal = 16.dp)
+                        contentPadding = PaddingValues(vertical = 4.dp)
                     ) {
                         items(continueWatching, key = { it.id }) { item ->
                             ContinueWatchingCard(
@@ -221,7 +280,7 @@ fun HomeScreen(
             }
         }
 
-        // Library Section (if library tab selected or has favorites)
+        // Library Section (if library tab selected)
         if (selectedFilter == "library") {
             item {
                 Column(
@@ -266,9 +325,12 @@ fun HomeScreen(
                             }
                         }
                     } else {
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        LazyRow(
+                            modifier = Modifier.focusRestorer(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
                             items(favorites) { fav ->
-                                CatalogCard(
+                                TvCatalogCard(
                                     meta = MetaItem(
                                         id = fav.id,
                                         type = fav.type,
@@ -300,7 +362,7 @@ fun HomeScreen(
                     ) {
                         Text(
                             text = "Popular Movies",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
@@ -313,12 +375,14 @@ fun HomeScreen(
                     }
 
                     LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.focusRestorer(),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
                         contentPadding = PaddingValues(horizontal = 16.dp)
                     ) {
-                        items(movies, key = { it.id }) { movie ->
-                            CatalogCard(
+                        itemsIndexed(movies, key = { _, item -> item.id }) { index, movie ->
+                            TvCatalogCard(
                                 meta = movie,
+                                modifier = if (index == 0) Modifier.focusRequester(firstItemFocus) else Modifier,
                                 onClick = { onItemClick(movie.type, movie.id) }
                             )
                         }
@@ -339,8 +403,8 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Top Rated TV Series",
-                            style = MaterialTheme.typography.titleMedium,
+                            text = "Popular Series",
+                            style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
@@ -353,11 +417,12 @@ fun HomeScreen(
                     }
 
                     LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.focusRestorer(),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
                         contentPadding = PaddingValues(horizontal = 16.dp)
                     ) {
                         items(series, key = { it.id }) { show ->
-                            CatalogCard(
+                            TvCatalogCard(
                                 meta = show,
                                 onClick = { onItemClick(show.type, show.id) }
                             )
@@ -386,11 +451,12 @@ fun HomeScreen(
                     }
 
                     LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.focusRestorer(),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
                         contentPadding = PaddingValues(horizontal = 16.dp)
                     ) {
                         items(trending, key = { "trend_${it.id}" }) { item ->
-                            CatalogCard(
+                            TvCatalogCard(
                                 meta = item,
                                 onClick = { onItemClick(item.type, item.id) }
                             )
