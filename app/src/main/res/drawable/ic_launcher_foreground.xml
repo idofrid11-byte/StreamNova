@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Outer ring glow / Nova ring -->
+    <path
+        android:pathData="M54,23 C71.12,23 85,36.88 85,54 C85,71.12 71.12,85 54,85 C36.88,85 23,71.12 23,54 C23,36.88 36.88,23 54,23 Z"
+        android:strokeWidth="3.5"
+        android:strokeColor="#3D2B66"
+        android:fillColor="#00000000" />
+
+    <!-- Play triangle with vibrant gradient -->
+    <path
+        android:pathData="M44,36 C42.2,34.9 40,36.2 40,38.3 L40,69.7 C40,71.8 42.2,73.1 44,72.0 L69,56.3 C70.6,55.3 70.6,52.7 69,51.7 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="40"
+                android:startY="36"
+                android:endX="70"
+                android:endY="72"
+                android:type="linear">
+                <item android:color="#00E5FF" android:offset="0.0" />
+                <item android:color="#7C4DFF" android:offset="0.5" />
+                <item android:color="#E040FB" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Nova Star Sparkle -->
+    <path
+        android:pathData="M70,30 L71.5,35 L76.5,36.5 L71.5,38 L70,43 L68.5,38 L63.5,36.5 L68.5,35 Z"
+        android:fillColor="#00E5FF" />
+</vector>
