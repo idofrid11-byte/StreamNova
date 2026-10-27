@@ -46,7 +46,7 @@ fun PlayerScreen(
     type: String = "movie",
     id: String = "",
     viewModel: StreamNovaViewModel? = null,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var isPlaying by remember { mutableStateOf(true) }

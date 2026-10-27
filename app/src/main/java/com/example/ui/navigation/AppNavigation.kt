@@ -4,14 +4,8 @@ import android.net.Uri
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Extension
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.Extension
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -27,6 +21,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import com.example.ui.screens.*
+import com.example.ui.theme.NovaAccentCyan
 import com.example.ui.theme.NovaPrimary
 import com.example.ui.viewmodel.StreamNovaViewModel
 
@@ -54,12 +49,13 @@ fun AppNavigation(
         )
     } else {
         val isPlayerScreen = currentRoute?.startsWith("player") == true
+        val isTvMode = currentRoute == "wuplay_tv"
 
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             containerColor = Color(0xFF090A10),
             bottomBar = {
-                if (!isPlayerScreen) {
+                if (!isPlayerScreen && !isTvMode) {
                     NavigationBar(
                         containerColor = Color(0xFF0E101D),
                         contentColor = Color.White,
@@ -67,7 +63,9 @@ fun AppNavigation(
                         modifier = Modifier.testTag("main_bottom_nav")
                     ) {
                         val isHome = currentRoute == "home"
-                        val isSearch = currentRoute == "search"
+                        val isDiscover = currentRoute == "discover"
+                        val isHubs = currentRoute == "hubs"
+                        val isLibrary = currentRoute == "library"
                         val isAddons = currentRoute == "addons"
                         val isSettings = currentRoute == "settings"
 
@@ -75,10 +73,10 @@ fun AppNavigation(
                             icon = {
                                 Icon(
                                     imageVector = if (isHome) Icons.Filled.Home else Icons.Outlined.Home,
-                                    contentDescription = "Discover"
+                                    contentDescription = "Home"
                                 )
                             },
-                            label = { Text("Discover", fontSize = 11.sp, fontWeight = if (isHome) FontWeight.Bold else FontWeight.Normal) },
+                            label = { Text("Home", fontSize = 11.sp, fontWeight = if (isHome) FontWeight.Bold else FontWeight.Normal) },
                             selected = isHome,
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = Color.White,
@@ -102,12 +100,12 @@ fun AppNavigation(
                         NavigationBarItem(
                             icon = {
                                 Icon(
-                                    imageVector = if (isSearch) Icons.Filled.Search else Icons.Outlined.Search,
-                                    contentDescription = "Search"
+                                    imageVector = if (isDiscover) Icons.Filled.Explore else Icons.Outlined.Explore,
+                                    contentDescription = "Discover"
                                 )
                             },
-                            label = { Text("Search", fontSize = 11.sp, fontWeight = if (isSearch) FontWeight.Bold else FontWeight.Normal) },
-                            selected = isSearch,
+                            label = { Text("Discover", fontSize = 11.sp, fontWeight = if (isDiscover) FontWeight.Bold else FontWeight.Normal) },
+                            selected = isDiscover,
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = Color.White,
                                 selectedTextColor = Color.White,
@@ -116,15 +114,71 @@ fun AppNavigation(
                                 unselectedTextColor = Color(0xFF7E84A6)
                             ),
                             onClick = {
-                                if (!isSearch) {
-                                    navController.navigate("search") {
+                                if (!isDiscover) {
+                                    navController.navigate("discover") {
                                         popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                         launchSingleTop = true
                                         restoreState = true
                                     }
                                 }
                             },
-                            modifier = Modifier.testTag("nav_item_search")
+                            modifier = Modifier.testTag("nav_item_discover")
+                        )
+
+                        NavigationBarItem(
+                            icon = {
+                                Icon(
+                                    imageVector = if (isHubs) Icons.Filled.Widgets else Icons.Outlined.Widgets,
+                                    contentDescription = "Hubs"
+                                )
+                            },
+                            label = { Text("Hubs", fontSize = 11.sp, fontWeight = if (isHubs) FontWeight.Bold else FontWeight.Normal) },
+                            selected = isHubs,
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = Color.White,
+                                selectedTextColor = Color.White,
+                                indicatorColor = NovaPrimary,
+                                unselectedIconColor = Color(0xFF7E84A6),
+                                unselectedTextColor = Color(0xFF7E84A6)
+                            ),
+                            onClick = {
+                                if (!isHubs) {
+                                    navController.navigate("hubs") {
+                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
+                            },
+                            modifier = Modifier.testTag("nav_item_hubs")
+                        )
+
+                        NavigationBarItem(
+                            icon = {
+                                Icon(
+                                    imageVector = if (isLibrary) Icons.Filled.VideoLibrary else Icons.Outlined.VideoLibrary,
+                                    contentDescription = "Library"
+                                )
+                            },
+                            label = { Text("Library", fontSize = 11.sp, fontWeight = if (isLibrary) FontWeight.Bold else FontWeight.Normal) },
+                            selected = isLibrary,
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = Color.White,
+                                selectedTextColor = Color.White,
+                                indicatorColor = NovaPrimary,
+                                unselectedIconColor = Color(0xFF7E84A6),
+                                unselectedTextColor = Color(0xFF7E84A6)
+                            ),
+                            onClick = {
+                                if (!isLibrary) {
+                                    navController.navigate("library") {
+                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
+                            },
+                            modifier = Modifier.testTag("nav_item_library")
                         )
 
                         NavigationBarItem(
@@ -192,12 +246,64 @@ fun AppNavigation(
                 modifier = Modifier.padding(innerPadding)
             ) {
                 composable("home") {
-                    HomeScreen(
+                    FlowvidHomeScreen(
                         viewModel = viewModel,
                         onItemClick = { type, id ->
                             navController.navigate("details/$type/$id")
                         },
-                        onDirectPlayClick = { streamUrl, title ->
+                        onPlayDirect = { streamUrl, title ->
+                            val encodedUrl = Uri.encode(streamUrl)
+                            val encodedTitle = Uri.encode(title)
+                            navController.navigate("player/$encodedUrl/$encodedTitle")
+                        },
+                        onSwitchToTvMode = {
+                            navController.navigate("wuplay_tv")
+                        },
+                        onSearchClick = {
+                            navController.navigate("discover")
+                        }
+                    )
+                }
+
+                composable("mediahoard") {
+                    MediaHoardHomeScreen(
+                        viewModel = viewModel,
+                        onItemClick = { type, id ->
+                            navController.navigate("details/$type/$id")
+                        }
+                    )
+                }
+
+                composable("discover") {
+                    DiscoverScreen(
+                        viewModel = viewModel,
+                        onItemClick = { type, id ->
+                            navController.navigate("details/$type/$id")
+                        }
+                    )
+                }
+
+                composable("hubs") {
+                    MediaHubsScreen(
+                        viewModel = viewModel,
+                        onPlayMedia = { streamUrl, title ->
+                            val encodedUrl = Uri.encode(streamUrl)
+                            val encodedTitle = Uri.encode(title)
+                            navController.navigate("player/$encodedUrl/$encodedTitle")
+                        },
+                        onItemClick = { type, id ->
+                            navController.navigate("details/$type/$id")
+                        }
+                    )
+                }
+
+                composable("library") {
+                    LibraryScreen(
+                        viewModel = viewModel,
+                        onItemClick = { type, id ->
+                            navController.navigate("details/$type/$id")
+                        },
+                        onPlayDirect = { streamUrl, title ->
                             val encodedUrl = Uri.encode(streamUrl)
                             val encodedTitle = Uri.encode(title)
                             navController.navigate("player/$encodedUrl/$encodedTitle")
@@ -205,24 +311,22 @@ fun AppNavigation(
                     )
                 }
 
-                composable("search") {
-                    SearchScreen(
+                composable("addons") {
+                    AddonManagerScreen(viewModel = viewModel)
+                }
+
+                composable("settings") {
+                    SettingsDashboardScreen(
                         viewModel = viewModel,
-                        onItemClick = { type, id ->
-                            navController.navigate("details/$type/$id")
+                        onLogoutClick = { isAuthenticated = false },
+                        onSwitchProfileClick = {
+                            navController.navigate("wuplay_tv")
                         }
                     )
                 }
 
-                composable("addons") {
-                    AddonsScreen(viewModel = viewModel)
-                }
-
-                composable("settings") {
-                    SettingsScreen(
-                        viewModel = viewModel,
-                        onLogoutClick = { isAuthenticated = false }
-                    )
+                composable("wuplay_tv") {
+                    WuPlayTvNavigation(viewModel = viewModel)
                 }
 
                 composable(
@@ -234,15 +338,31 @@ fun AppNavigation(
                 ) { backStackEntry ->
                     val type = backStackEntry.arguments?.getString("type") ?: "movie"
                     val id = backStackEntry.arguments?.getString("id") ?: ""
-                    DetailsScreen(
+                    WuPlayDetailsScreen(
                         type = type,
                         id = id,
                         viewModel = viewModel,
-                        onBackClick = { navController.popBackStack() },
-                        onPlayClick = { streamUrl, title ->
+                        onPlayClick = { streamUrl ->
                             val encodedUrl = Uri.encode(streamUrl)
-                            val encodedTitle = Uri.encode(title)
+                            val encodedTitle = Uri.encode("Stream Playback")
                             navController.navigate("player/$encodedUrl/$encodedTitle?id=$id&type=$type")
+                        },
+                        onPersonClick = { personId ->
+                            navController.navigate("person/$personId")
+                        }
+                    )
+                }
+
+                composable(
+                    route = "person/{personId}",
+                    arguments = listOf(navArgument("personId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val personId = backStackEntry.arguments?.getString("personId") ?: ""
+                    PersonDetailScreen(
+                        personId = personId,
+                        onBackClick = { navController.popBackStack() },
+                        onItemClick = { type, id ->
+                            navController.navigate("details/$type/$id")
                         }
                     )
                 }
@@ -276,6 +396,18 @@ fun AppNavigation(
                         type = type,
                         id = id,
                         viewModel = viewModel,
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
+
+                composable(
+                    route = "player/{url}",
+                    arguments = listOf(navArgument("url") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val url = Uri.decode(backStackEntry.arguments?.getString("url") ?: "")
+                    PlayerScreen(
+                        videoUrl = url,
+                        title = "WuPlay TV Stream",
                         onBackClick = { navController.popBackStack() }
                     )
                 }

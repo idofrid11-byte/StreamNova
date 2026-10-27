@@ -25,10 +25,11 @@ import com.example.data.db.SettingsEntity
 import com.example.ui.theme.NovaAccentCyan
 import com.example.ui.theme.NovaPrimary
 import com.example.ui.viewmodel.StreamNovaViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
 fun SettingsScreen(
-    viewModel: StreamNovaViewModel,
+    viewModel: StreamNovaViewModel = viewModel(),
     onLogoutClick: () -> Unit = {}
 ) {
     val currentSettings by viewModel.settings.collectAsStateWithLifecycle()

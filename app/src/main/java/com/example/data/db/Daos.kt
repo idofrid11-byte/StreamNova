@@ -29,6 +29,9 @@ interface LibraryDao {
     @Query("SELECT * FROM library ORDER BY updatedAt DESC")
     fun getAllLibrary(): Flow<List<LibraryEntity>>
 
+    @Query("SELECT * FROM library")
+    suspend fun getLibrarySnapshot(): List<LibraryEntity>
+
     @Query("SELECT * FROM library WHERE isFavorite = 1 ORDER BY updatedAt DESC")
     fun getFavorites(): Flow<List<LibraryEntity>>
 
@@ -79,4 +82,49 @@ interface SettingsDao {
 
     @Query("SELECT * FROM settings WHERE id = 1")
     suspend fun getSettingsSnapshot(): SettingsEntity?
+}
+
+@Dao
+interface ProfileDao {
+    @Query("SELECT * FROM mediahoard_profiles ORDER BY name ASC")
+    fun getAllProfiles(): Flow<List<com.example.data.model.ProfileEntity>>
+
+    @Query("SELECT * FROM mediahoard_profiles WHERE isCurrent = 1 LIMIT 1")
+    fun getCurrentProfile(): Flow<com.example.data.model.ProfileEntity?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun saveProfile(profile: com.example.data.model.ProfileEntity)
+
+    @Query("UPDATE mediahoard_profiles SET isCurrent = (profileId = :profileId)")
+    suspend fun setCurrentProfile(profileId: String)
+
+    @Query("DELETE FROM mediahoard_profiles WHERE profileId = :profileId")
+    suspend fun deleteProfile(profileId: String)
+}
+
+@Dao
+interface ThemeDao {
+    @Query("SELECT * FROM mediahoard_themes WHERE id = 1")
+    fun getThemeConfig(): Flow<com.example.data.model.ThemeConfigEntity?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun saveThemeConfig(theme: com.example.data.model.ThemeConfigEntity)
+}
+
+@Dao
+interface CloudSyncDao {
+    @Query("SELECT * FROM mediahoard_supabase_sync WHERE id = 1")
+    fun getCloudSyncConfig(): Flow<com.example.data.model.CloudSyncConfigEntity?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun saveCloudSyncConfig(config: com.example.data.model.CloudSyncConfigEntity)
+}
+
+@Dao
+interface ApiKeysDao {
+    @Query("SELECT * FROM mediahoard_api_keys WHERE id = 1")
+    fun getApiKeys(): Flow<com.example.data.model.ApiKeysEntity?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun saveApiKeys(keys: com.example.data.model.ApiKeysEntity)
 }
